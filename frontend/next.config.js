@@ -1,3 +1,5 @@
+const path = require("path");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
@@ -13,6 +15,13 @@ const nextConfig = {
   typescript: {
     // Allow production builds to complete even with TypeScript errors
     ignoreBuildErrors: false,
+  },
+  webpack: (config) => {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@": path.resolve(__dirname, "."),
+    };
+    return config;
   },
 };
 
