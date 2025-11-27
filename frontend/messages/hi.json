@@ -1,0 +1,95 @@
+{
+  "common": {
+    "loading": "लोड हो रहा है...",
+    "error": "एक त्रुटि हुई",
+    "success": "सफलता",
+    "cancel": "रद्द करें",
+    "save": "सहेजें",
+    "edit": "संपादित करें",
+    "delete": "हटाएं",
+    "confirm": "पुष्टि करें",
+    "back": "वापस",
+    "next": "अगला",
+    "previous": "पिछला",
+    "search": "खोजें",
+    "filter": "फ़िल्टर",
+    "sort": "क्रमबद्ध करें",
+    "refresh": "ताज़ा करें"
+  },
+  "auth": {
+    "signIn": "साइन इन",
+    "signOut": "साइन आउट",
+    "email": "ईमेल",
+    "password": "पासवर्ड",
+    "forgotPassword": "पासवर्ड भूल गए?",
+    "createAccount": "खाता बनाएं",
+    "welcome": "फार्म2होम में आपका स्वागत है",
+    "signInToAccount": "अपने खाते में साइन इन करें"
+  },
+  "navigation": {
+    "home": "होम",
+    "dashboard": "डैशबोर्ड",
+    "products": "उत्पाद",
+    "orders": "ऑर्डर",
+    "profile": "प्रोफाइल",
+    "settings": "सेटिंग्स",
+    "notifications": "सूचनाएं"
+  },
+  "roles": {
+    "admin": "एडमिन",
+    "farmer": "किसान",
+    "cr": "कम्युनिटी रिप्रेजेंटेटिव",
+    "pickupAgent": "पिकअप एजेंट",
+    "customer": "ग्राहक"
+  },
+  "dashboard": {
+    "overview": "अवलोकन",
+    "recentActivity": "हाल की गतिविधि",
+    "quickActions": "त्वरित कार्य",
+    "statistics": "आंकड़े"
+  },
+  "products": {
+    "addProduct": "उत्पाद जोड़ें",
+    "editProduct": "उत्पाद संपादित करें",
+    "productName": "उत्पाद का नाम",
+    "category": "श्रेणी",
+    "description": "विवरण",
+    "price": "मूल्य",
+    "quantity": "मात्रा",
+    "photos": "फोटो",
+    "status": "स्थिति",
+    "pending": "लंबित",
+    "approved": "अनुमोदित",
+    "rejected": "अस्वीकृत"
+  },
+  "orders": {
+    "orderId": "ऑर्डर आईडी",
+    "customer": "ग्राहक",
+    "total": "कुल",
+    "status": "स्थिति",
+    "created": "बनाया गया",
+    "paid": "भुगतान किया गया",
+    "pickedUp": "उठाया गया",
+    "delivered": "डिलीवर किया गया",
+    "cancelled": "रद्द किया गया"
+  },
+  "notifications": {
+    "newOrder": "नया ऑर्डर",
+    "orderUpdate": "ऑर्डर अपडेट",
+    "productApproved": "उत्पाद अनुमोदित",
+    "productRejected": "उत्पाद अस्वीकृत",
+    "paymentReceived": "भुगतान प्राप्त"
+  },
+  "weather": {
+    "forecast": "मौसम पूर्वानुमान",
+    "rainProbability": "बारिश की संभावना",
+    "temperature": "तापमान",
+    "humidity": "आर्द्रता"
+  },
+  "maps": {
+    "location": "स्थान",
+    "navigate": "नेविगेट करें",
+    "pickupLocation": "पिकअप स्थान",
+    "deliveryLocation": "डिलीवरी स्थान"
+  }
+}

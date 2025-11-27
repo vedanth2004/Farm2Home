@@ -1,0 +1,95 @@
+{
+  "common": {
+    "loading": "ஏற்றுகிறது...",
+    "error": "ஒரு பிழை ஏற்பட்டது",
+    "success": "வெற்றி",
+    "cancel": "ரத்து செய்",
+    "save": "சேமி",
+    "edit": "திருத்து",
+    "delete": "நீக்கு",
+    "confirm": "உறுதிப்படுத்து",
+    "back": "பின்",
+    "next": "அடுத்து",
+    "previous": "முந்தைய",
+    "search": "தேடு",
+    "filter": "வடிகட்டு",
+    "sort": "வரிசைப்படுத்து",
+    "refresh": "புதுப்பி"
+  },
+  "auth": {
+    "signIn": "உள்நுழை",
+    "signOut": "வெளியேறு",
+    "email": "மின்னஞ்சல்",
+    "password": "கடவுச்சொல்",
+    "forgotPassword": "கடவுச்சொல்லை மறந்துவிட்டீர்களா?",
+    "createAccount": "கணக்கு உருவாக்கு",
+    "welcome": "பண்ணை2வீடு வரவேற்கிறது",
+    "signInToAccount": "உங்கள் கணக்கில் உள்நுழையுங்கள்"
+  },
+  "navigation": {
+    "home": "முகப்பு",
+    "dashboard": "கட்டுப்பாட்டு பலகை",
+    "products": "தயாரிப்புகள்",
+    "orders": "ஆர்டர்கள்",
+    "profile": "சுயவிவரம்",
+    "settings": "அமைப்புகள்",
+    "notifications": "அறிவிப்புகள்"
+  },
+  "roles": {
+    "admin": "நிர்வாகி",
+    "farmer": "விவசாயி",
+    "cr": "சமூக பிரதிநிதி",
+    "pickupAgent": "பிக்அப் ஏஜென்ட்",
+    "customer": "வாடிக்கையாளர்"
+  },
+  "dashboard": {
+    "overview": "கண்ணோட்டம்",
+    "recentActivity": "சமீபத்திய செயல்பாடு",
+    "quickActions": "விரைவு செயல்கள்",
+    "statistics": "புள்ளிவிவரங்கள்"
+  },
+  "products": {
+    "addProduct": "தயாரிப்பு சேர்",
+    "editProduct": "தயாரிப்பு திருத்து",
+    "productName": "தயாரிப்பு பெயர்",
+    "category": "வகை",
+    "description": "விளக்கம்",
+    "price": "விலை",
+    "quantity": "அளவு",
+    "photos": "புகைப்படங்கள்",
+    "status": "நிலை",
+    "pending": "நிலுவையில்",
+    "approved": "அனுமதிக்கப்பட்டது",
+    "rejected": "நிராகரிக்கப்பட்டது"
+  },
+  "orders": {
+    "orderId": "ஆர்டர் ஐடி",
+    "customer": "வாடிக்கையாளர்",
+    "total": "மொத்தம்",
+    "status": "நிலை",
+    "created": "உருவாக்கப்பட்டது",
+    "paid": "பணம் செலுத்தப்பட்டது",
+    "pickedUp": "எடுக்கப்பட்டது",
+    "delivered": "வழங்கப்பட்டது",
+    "cancelled": "ரத்து செய்யப்பட்டது"
+  },
+  "notifications": {
+    "newOrder": "புதிய ஆர்டர்",
+    "orderUpdate": "ஆர்டர் புதுப்பிப்பு",
+    "productApproved": "தயாரிப்பு அனுமதிக்கப்பட்டது",
+    "productRejected": "தயாரிப்பு நிராகரிக்கப்பட்டது",
+    "paymentReceived": "பணம் பெறப்பட்டது"
+  },
+  "weather": {
+    "forecast": "வானிலை முன்னறிவிப்பு",
+    "rainProbability": "மழை நிகழ்தகவு",
+    "temperature": "வெப்பநிலை",
+    "humidity": "ஈரப்பதம்"
+  },
+  "maps": {
+    "location": "இடம்",
+    "navigate": "வழிகாட்டு",
+    "pickupLocation": "பிக்அப் இடம்",
+    "deliveryLocation": "விநியோக இடம்"
+  }
+}

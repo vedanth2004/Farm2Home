@@ -1,0 +1,66 @@
+===============================================================================
+                  ML NOTEBOOK FOLDER STRUCTURE
+===============================================================================
+
+ml_notebook/
+│
+├── customer_purchase_prediction.ipynb  (Main Jupyter notebook)
+│   ├── 24 cells total
+│   ├── Data loading & joining
+│   ├── Feature engineering
+│   ├── Model training (XGBoost)
+│   ├── Predictions & recommendations
+│   ├── Visualizations (5 charts)
+│   └── Final summary
+│
+├── README.md  (Folder documentation)
+│   └── Quick start guide & overview
+│
+├── README_ML_NOTEBOOK.md  (Quick start)
+│   └── Installation & usage
+│
+├── ML_NOTEBOOK_SUMMARY.md  (Detailed docs)
+│   └── Features & business value
+│
+├── ML_NOTEBOOK_COMPLETE.md  (Checklist)
+│   └── Quality assurance
+│
+└── STRUCTURE.txt  (This file)
+    └── Folder tree
+
+===============================================================================
+                              OUTPUT FILES
+===============================================================================
+
+Generated when notebook is run:
+├── customer_predictions.csv
+│   ├── customerId
+│   ├── predictedCategory
+│   ├── predictedProductId
+│   └── predictionProbability
+│
+└── (Visualizations displayed inline in notebook)
+
+===============================================================================
+                            DATA REQUIREMENTS
+===============================================================================
+
+Must be in parent directory:
+├── orders.csv
+├── customers.csv
+└── products.csv
+
+===============================================================================
+                             TECHNICAL STACK
+===============================================================================
+
+Python Libraries:
+├── pandas (Data processing)
+├── numpy (Numerical operations)
+├── scikit-learn (ML pipeline)
+├── xgboost (Gradient boosting)
+├── matplotlib (Basic plotting)
+└── seaborn (Statistical visualization)
+
+===============================================================================
+

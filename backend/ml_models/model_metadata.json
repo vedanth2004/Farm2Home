@@ -1,0 +1,19 @@
+{
+  "version": "1.0.0",
+  "created_at": "2024-01-01T00:00:00Z",
+  "feature_order": [
+    "totalOrders",
+    "purchaseFrequency",
+    "avgOrderValue",
+    "lastPurchaseDaysAgo",
+    "totalItemsBought",
+    "repeatRate",
+    "preferredCategory_encoded",
+    "district_encoded",
+    "postalCode_encoded"
+  ],
+  "encoder_names": ["preferredCategory", "district", "postalCode"],
+  "target_encoder": "category_label_encoder",
+  "note": "Place your trained model files (customer_purchase_model.pkl, category_label_encoder.pkl, feature_label_encoders.pkl) in this directory"
+}
+

@@ -1,0 +1,55 @@
+# General
+node_modules/
+.pnp/
+.pnp.js
+.DS_Store
+.env
+.env.*
+!.env.example
+.npm/
+.yarn/
+.turbo/
+.cache/
+.vercel/
+.vscode/
+.idea/
+coverage/
+dist/
+build/
+*.log
+*.log.*
+*.tmp
+*.temp
+*.pid
+*.pid.lock
+*.swp
+
+# Next.js build output
+frontend/.next/
+frontend/.vercel/
+frontend/node_modules/
+frontend/.turbo/
+frontend/.eslintcache
+
+# Backend Python env & caches
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/**/.pytest_cache/
+backend/**/.mypy_cache/
+backend/**/.ruff_cache/
+backend/**/.coverage
+backend/**/.coverage.*
+backend/**/.python-version
+backend/**/.ruff_cache/
+backend/**/.DS_Store
+backend/ml_service/.venv/
+backend/ml_service/venv/
+
+# Databases & generated artifacts
+backend/ml_service/*.db
+backend/ml_service/ml_models/*
+
+# Local scripts / temp data
+scripts/**/*.log
+scripts/**/*.tmp
+

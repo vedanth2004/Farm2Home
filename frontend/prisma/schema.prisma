@@ -1,0 +1,778 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+  shadowDatabaseUrl = env("SHADOW_DATABASE_URL")
+}
+
+model User {
+  id                 String              @id @default(cuid())
+  internalId         String?             @unique // UUID for internal tracking
+  displayId          String?             @unique // Human-readable ID (e.g., FARM-ABC123)
+  name               String
+  email              String              @unique
+  phone              String?
+  password           String?
+  role               UserRole
+  accountStatus      AccountStatus       @default(PENDING_VERIFICATION)
+  twoFactorEnabled   Boolean             @default(false)
+  twoFactorSecret    String?
+  locale             String              @default("en")
+  loyaltyPoints      Int                 @default(0) // Loyalty/reward points
+  referralCode       String?             @unique // Unique referral code
+  referredBy         String?             // User ID who referred this user
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  accounts           Account[]
+  addresses          Address[]
+  crProfile          CRProfile?
+  farmerProfile      FarmerProfile?
+  notifications      Notification[]
+  orders             Order[]
+  pickupAgentProfile PickupAgentProfile?
+  approvedListings   ProductListing[]    @relation("ApprovedBy")
+  reviews            Review[]
+  sessions           Session[]
+  cart               Cart?
+  wishlist           WishlistItem[]
+  loyaltyTransactions LoyaltyTransaction[]
+  referredUsers      User[]              @relation("UserReferrals")
+  referrer           User?               @relation("UserReferrals", fields: [referredBy], references: [id])
+  approvalRequests   ApprovalRequest[]   @relation("ApprovalRequests")
+  auditLogs          AuditLog[]          @relation("AuditLogs")
+
+  @@index([role])
+  @@index([accountStatus])
+  @@index([referralCode])
+  @@index([referredBy])
+  @@index([internalId])
+  @@index([displayId])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FarmerProfile {
+  id           String      @id @default(cuid())
+  userId       String      @unique
+  govtId       String?
+  upiId        String?
+  verified     Boolean     @default(false)
+  crId         String?     // Assigned CR ID (nearest CR within 50km)
+  distanceToCR Decimal?     @db.Decimal(10, 2) // Distance to assigned CR in kilometers
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime   @updatedAt
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products     Product[]
+  earnings     Earnings[]
+  payouts      Payout[]
+
+  @@index([crId])
+}
+
+model CRProfile {
+  id           String     @id @default(cuid())
+  userId       String     @unique
+  serviceAreas String[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries   Delivery[]
+}
+
+model PickupAgentProfile {
+  id           String      @id @default(cuid())
+  userId       String      @unique
+  vehicleType  String?
+  serviceAreas String[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  user         User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pickupJobs   PickupJob[]
+}
+
+model Product {
+  id            String           @id @default(cuid())
+  farmerId      String
+  name          String
+  category      String
+  description   String
+  baseUnit      String
+  photos        String[]
+  averageRating Float            @default(0)
+  totalReviews  Int              @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  farmer        FarmerProfile    @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  drafts        ProductDraft[]
+  listings      ProductListing[]
+  cartItems     CartItem[]
+  wishlistItems WishlistItem[]
+
+  @@index([farmerId])
+  @@index([category])
+}
+
+model ProductDraft {
+  id           String             @id @default(cuid())
+  productId    String
+  pricePerUnit Decimal            @db.Decimal(10, 2) // Keep for backward compatibility
+  farmerPrice  Decimal?           @db.Decimal(10, 2)
+  storePrice   Decimal?           @db.Decimal(10, 2)
+  availableQty Int
+  status       ProductDraftStatus @default(PENDING)
+  adminNote    String?
+  margin       Decimal?           @db.Decimal(5, 2) // Margin percentage
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  product      Product            @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+}
+
+model ProductListing {
+  id                String                 @id @default(cuid())
+  productId         String
+  pricePerUnit      Decimal                @db.Decimal(10, 2) // Keep for backward compatibility
+  farmerPrice       Decimal?               @db.Decimal(10, 2)
+  storePrice        Decimal?               @db.Decimal(10, 2)
+  availableQty      Int
+  lowStockThreshold Int                    @default(10)
+  isActive          Boolean                @default(false)
+  approvedBy        String?
+  approvedAt        DateTime?
+  margin            Decimal?               @db.Decimal(5, 2) // Margin percentage
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+  transactions      InventoryTransaction[]
+  orderItems        OrderItem[]
+  approver          User?                  @relation("ApprovedBy", fields: [approvedBy], references: [id])
+  product           Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, isActive])
+  @@index([availableQty])
+}
+
+model InventoryTransaction {
+  id        String                     @id @default(cuid())
+  listingId String
+  delta     Int
+  reason    InventoryTransactionReason
+  createdAt DateTime                   @default(now())
+  listing   ProductListing             @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@index([listingId])
+}
+
+model Order {
+  id                String        @id @default(cuid())
+  customerId        String
+  status            OrderStatus   @default(CREATED)
+  totalAmount       Decimal       @db.Decimal(10, 2)
+  discountAmount    Decimal?      @db.Decimal(10, 2)
+  couponCode        String?
+  paymentStatus     PaymentStatus @default(PENDING)
+  shippingAddressId String
+  crId              String?       // CR assigned to this order (for tracking, CR gets monthly salary)
+  parentOrderId     String? // For split orders (multi-seller)
+  cashCollected     Boolean       @default(false) // For COD confirmation
+  cashCollectedBy   String? // User ID who collected cash (agent/CR)
+  cashCollectedAt   DateTime? // Timestamp of cash collection
+  autoCompleteAt    DateTime? // When to auto-complete if not confirmed
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  delivery          Delivery?
+  customer          User          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  shippingAddress   Address       @relation(fields: [shippingAddressId], references: [id])
+  items             OrderItem[]
+  payments          Payment[]
+  pickupJob         PickupJob?
+  earnings          Earnings[]
+  coupon            Coupon?       @relation(fields: [couponCode], references: [code])
+  reviews           Review[]
+  refunds           Refund[]
+  adminRevenues     AdminRevenue[]
+  childOrders       Order[]       @relation("OrderParent")
+  parentOrder       Order?        @relation("OrderParent", fields: [parentOrderId], references: [id])
+
+  @@index([customerId])
+  @@index([status])
+  @@index([couponCode])
+  @@index([parentOrderId])
+  @@index([paymentStatus, status])
+  @@index([createdAt])
+  @@index([crId])
+}
+
+model OrderItem {
+  id          String         @id @default(cuid())
+  orderId     String
+  listingId   String
+  quantity    Int
+  unitPrice   Decimal        @db.Decimal(10, 2) // Store price (what customer paid)
+  farmerPrice Decimal?       @db.Decimal(10, 2) // Farmer's price (what farmer gets)
+  platformFee Decimal?       @db.Decimal(10, 2) // Platform margin (unitPrice - farmerPrice)
+  adminProfit Decimal?       @db.Decimal(10, 2) // Admin profit per item: (unitPrice - farmerPrice) × quantity
+  listing     ProductListing @relation(fields: [listingId], references: [id])
+  order       Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  earnings    Earnings[]
+  refunds     Refund[]
+
+  @@index([orderId])
+  @@index([listingId])
+}
+
+model PickupJob {
+  id                String             @id @default(cuid())
+  orderId           String             @unique
+  agentId           String
+  status            PickupJobStatus    @default(REQUESTED)
+  pickupEta         DateTime?
+  dropoffEta        DateTime?
+  deliveryDistance  Decimal?           @db.Decimal(10, 2) // Distance in kilometers (Haversine calculated)
+  agentFee          Decimal?           @db.Decimal(10, 2) // Agent fee: 8 rupees per kilometer
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  agent             PickupAgentProfile @relation(fields: [agentId], references: [id])
+  order             Order              @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  deliveryApprovals DeliveryApproval[]
+
+  @@index([agentId])
+  @@index([status])
+}
+
+model DeliveryApproval {
+  id            String                 @id @default(cuid())
+  pickupJobId   String
+  status        DeliveryApprovalStatus @default(PENDING)
+  requestedAt   DateTime               @default(now())
+  approvedAt    DateTime?
+  rejectedAt    DateTime?
+  customerNotes String?
+  agentNotes    String?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  pickupJob     PickupJob              @relation(fields: [pickupJobId], references: [id], onDelete: Cascade)
+
+  @@index([pickupJobId])
+  @@index([status])
+}
+
+model Delivery {
+  id        String         @id @default(cuid())
+  orderId   String         @unique
+  crId      String
+  status    DeliveryStatus @default(QUEUED)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  cr        CRProfile      @relation(fields: [crId], references: [id])
+  order     Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([crId])
+  @@index([status])
+}
+
+model Payment {
+  id               String         @id @default(cuid())
+  orderId          String
+  gateway          PaymentGateway
+  gatewayOrderId   String
+  gatewayPaymentId String?
+  status           PaymentStatus
+  amount           Decimal        @db.Decimal(10, 2)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  order            Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+}
+
+model Earnings {
+  id          String         @id @default(cuid())
+  farmerId    String
+  orderId     String
+  orderItemId String
+  amount      Decimal        @db.Decimal(10, 2)
+  status      EarningsStatus @default(PENDING)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  farmer      FarmerProfile  @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+  order       Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItem   OrderItem      @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+
+  @@index([farmerId])
+  @@index([status])
+}
+
+model Payout {
+  id              String            @id @default(cuid())
+  beneficiaryType BeneficiaryType
+  beneficiaryId   String
+  amount          Decimal           @db.Decimal(10, 2)
+  status          PayoutStatus      @default(PENDING)
+  reference       String?
+  requestType     PayoutRequestType @default(MANUAL)
+  farmerId        String?
+  requestedAt     DateTime          @default(now())
+  approvedAt      DateTime?
+  rejectedAt      DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  farmer          FarmerProfile?    @relation(fields: [farmerId], references: [id], onDelete: Cascade)
+
+  @@index([beneficiaryType, beneficiaryId])
+  @@index([farmerId])
+  @@index([status])
+}
+
+model Review {
+  id          String           @id @default(cuid())
+  authorId    String
+  orderId     String?
+  targetType  ReviewTargetType
+  targetId    String
+  productId   String?          // Direct reference for product reviews
+  farmerId    String?          // Direct reference for farmer's products
+  rating      Int              @db.SmallInt
+  comment     String?
+  status      ReviewStatus     @default(PENDING)
+  isVerified  Boolean          @default(false)
+  isModerated Boolean          @default(false) // Backward compatibility
+  moderatedAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  author      User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  order       Order?           @relation(fields: [orderId], references: [id], onDelete: SetNull)
+
+  @@index([targetType, targetId])
+  @@index([productId])
+  @@index([farmerId])
+  @@index([orderId])
+  @@index([status])
+  @@index([isModerated])
+}
+
+model Address {
+  id         String   @id @default(cuid())
+  userId     String
+  label      String?
+  line1      String
+  line2      String?
+  city       String
+  district   String?  // District derived from postal code geocoding
+  state      String
+  postalCode String
+  country    String   @default("India")
+  lat        Float?
+  lon        Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders     Order[]
+
+  @@index([userId])
+}
+
+model Notification {
+  id        String              @id @default(cuid())
+  userId    String
+  type      String
+  channel   NotificationChannel
+  payload   Json
+  read      Boolean             @default(false)
+  createdAt DateTime            @default(now())
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+}
+
+model Region {
+  id        String   @id @default(cuid())
+  name      String
+  polygon   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum UserRole {
+  ADMIN
+  FARMER
+  CR
+  CUSTOMER
+  PICKUP_AGENT
+}
+
+enum ProductDraftStatus {
+  PENDING
+  CHANGES_REQUESTED
+  APPROVED
+  REJECTED
+}
+
+enum OrderStatus {
+  CREATED
+  PAID
+  PICKUP_ASSIGNED
+  PICKED_UP
+  AT_CR
+  OUT_FOR_DELIVERY
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+  REFUND_REQUESTED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum PickupJobStatus {
+  REQUESTED
+  ACCEPTED
+  PICKED_UP
+  HANDED_TO_CR
+  DELIVERY_REQUESTED
+  DELIVERED
+  CANCELLED
+}
+
+enum DeliveryApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum DeliveryStatus {
+  QUEUED
+  RECEIVED_FROM_AGENT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  FAILED
+}
+
+enum InventoryTransactionReason {
+  ORDER_RESERVE
+  ORDER_CANCEL
+  ADMIN_ADJUST
+  RESTOCK
+  REFUND
+}
+
+enum PayoutStatus {
+  PENDING
+  SCHEDULED
+  PAID
+  REJECTED
+}
+
+enum BeneficiaryType {
+  FARMER
+  CR
+  PICKUP_AGENT
+}
+
+enum PaymentGateway {
+  RAZORPAY
+}
+
+enum NotificationChannel {
+  EMAIL
+  PUSH
+  INAPP
+}
+
+model Cart {
+  id        String     @id @default(cuid())
+  userId    String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items     CartItem[]
+
+  @@unique([userId])
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  cartId    String
+  productId String
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([cartId, productId])
+}
+
+model WishlistItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, productId])
+  @@index([userId])
+}
+
+model Coupon {
+  code            String    @id
+  name            String
+  description     String?
+  discountPercent Decimal   @db.Decimal(5, 2)
+  minPurchase     Decimal?  @db.Decimal(10, 2)
+  maxDiscount     Decimal?  @db.Decimal(10, 2)
+  validFrom       DateTime
+  validTo         DateTime
+  usageLimit      Int?
+  usedCount       Int       @default(0)
+  isActive        Boolean   @default(true)
+  categories      String[]  @default([]) // Category-based discounts
+  applicableTo   String[]  @default([]) // User IDs for referral bonuses
+  referralCode   String?   // If this is a referral coupon
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  orders          Order[]
+
+  @@index([isActive])
+  @@index([validFrom, validTo])
+  @@index([referralCode])
+}
+
+enum ReviewTargetType {
+  PRODUCT
+  DELIVERY
+  FARMER
+  CR
+  PICKUP_AGENT
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum EarningsStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
+enum PayoutRequestType {
+  MANUAL
+  FARMER_REQUEST
+}
+
+enum AccountStatus {
+  PENDING_VERIFICATION
+  APPROVED
+  REJECTED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model LoyaltyTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  points      Int      // Positive for earned, negative for redeemed
+  reason      String   // "ORDER_COMPLETE", "REFERRAL", "REDEMPTION", "BONUS"
+  orderId     String?  // If related to an order
+  description String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+model PricingRule {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  type          PricingRuleType
+  category      String?   // Product category
+  productId     String?   // Specific product
+  farmerId      String?   // Specific farmer
+  discountPercent Decimal? @db.Decimal(5, 2)
+  fixedPrice    Decimal?  @db.Decimal(10, 2)
+  minQuantity   Int?      // Minimum quantity for rule to apply
+  validFrom     DateTime
+  validTo       DateTime
+  isActive      Boolean   @default(true)
+  priority      Int       @default(0) // Higher priority rules apply first
+  conditions    Json?     // Additional conditions (season, demand, etc.)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([type, isActive])
+  @@index([validFrom, validTo])
+  @@index([category])
+  @@index([farmerId])
+}
+
+enum PricingRuleType {
+  SEASONAL_DISCOUNT
+  BULK_DISCOUNT
+  DEMAND_BASED
+  FARMER_SPECIFIC
+  CATEGORY_DISCOUNT
+  TIME_BASED
+}
+
+model ApprovalRequest {
+  id          String         @id @default(cuid())
+  userId      String
+  displayId   String         // User's display ID
+  role        UserRole
+  status      ApprovalStatus @default(PENDING)
+  requestedAt DateTime       @default(now())
+  reviewedAt  DateTime?
+  reviewedBy  String?        // Admin who reviewed
+  adminNotes  String?
+  user        User           @relation("ApprovalRequests", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([displayId])
+  @@index([status])
+  @@index([role])
+  @@index([requestedAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?  // User who performed action
+  displayId  String?  // User's display ID
+  role       UserRole
+  action     String   // e.g., "Created Order", "Approved Payout"
+  entityType String   // e.g., "Order", "Product"
+  entityId   String   // ID of affected entity
+  oldValue   Json?    // Previous state
+  newValue   Json?    // New state
+  metadata   Json?    // Additional context
+  timestamp  DateTime @default(now())
+  user       User?    @relation("AuditLogs", fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([displayId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([timestamp])
+  @@index([role])
+}
+
+model ActivityLog {
+  id         String   @id @default(cuid())
+  userId     String? // User who made the change
+  userRole   UserRole
+  action     String // e.g., "ORDER_STATUS_UPDATE", "PAYMENT_PROCESSED"
+  entityType String // e.g., "Order", "Payment", "Refund"
+  entityId   String // ID of the affected entity
+  oldValue   Json? // Previous state (snapshot)
+  newValue   Json? // New state (snapshot)
+  metadata   Json? // Additional context
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([entityType, entityId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+model Refund {
+  id           String       @id @default(cuid())
+  orderId      String
+  orderItemId  String? // For partial refunds
+  amount       Decimal      @db.Decimal(10, 2)
+  reason       String
+  reasonDetail String?
+  imageUrl     String? // Optional image for refund reason
+  status       RefundStatus @default(PENDING)
+  requestedBy  String // Customer ID
+  reviewedBy   String? // Admin ID who reviewed
+  reviewedAt   DateTime?
+  adminNotes   String?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  order        Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItem    OrderItem?   @relation(fields: [orderItemId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([status])
+  @@index([requestedBy])
+}
+
+enum RefundStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PROCESSED
+}
+
+model AdminRevenue {
+  id          String   @id @default(cuid())
+  orderId     String
+  orderItemId String?
+  amount      Decimal  @db.Decimal(10, 2) // Admin profit from this order/item
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@index([orderItemId])
+  @@index([createdAt])
+}
+
+model CustomerPrediction {
+  id                   String   @id @default(cuid())
+  customerId           String   @unique
+  predictedCategory    String?
+  predictionProbability Float?
+  predictedProductId   String? 
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([customerId])
+  @@index([predictedCategory])
+}

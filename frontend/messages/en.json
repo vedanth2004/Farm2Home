@@ -1,0 +1,95 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "success": "Success",
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirm": "Confirm",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "refresh": "Refresh"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "email": "Email",
+    "password": "Password",
+    "forgotPassword": "Forgot Password?",
+    "createAccount": "Create Account",
+    "welcome": "Welcome to Farm2Home",
+    "signInToAccount": "Sign in to your account"
+  },
+  "navigation": {
+    "home": "Home",
+    "dashboard": "Dashboard",
+    "products": "Products",
+    "orders": "Orders",
+    "profile": "Profile",
+    "settings": "Settings",
+    "notifications": "Notifications"
+  },
+  "roles": {
+    "admin": "Admin",
+    "farmer": "Farmer",
+    "cr": "Community Representative",
+    "pickupAgent": "Pickup Agent",
+    "customer": "Customer"
+  },
+  "dashboard": {
+    "overview": "Overview",
+    "recentActivity": "Recent Activity",
+    "quickActions": "Quick Actions",
+    "statistics": "Statistics"
+  },
+  "products": {
+    "addProduct": "Add Product",
+    "editProduct": "Edit Product",
+    "productName": "Product Name",
+    "category": "Category",
+    "description": "Description",
+    "price": "Price",
+    "quantity": "Quantity",
+    "photos": "Photos",
+    "status": "Status",
+    "pending": "Pending",
+    "approved": "Approved",
+    "rejected": "Rejected"
+  },
+  "orders": {
+    "orderId": "Order ID",
+    "customer": "Customer",
+    "total": "Total",
+    "status": "Status",
+    "created": "Created",
+    "paid": "Paid",
+    "pickedUp": "Picked Up",
+    "delivered": "Delivered",
+    "cancelled": "Cancelled"
+  },
+  "notifications": {
+    "newOrder": "New Order",
+    "orderUpdate": "Order Update",
+    "productApproved": "Product Approved",
+    "productRejected": "Product Rejected",
+    "paymentReceived": "Payment Received"
+  },
+  "weather": {
+    "forecast": "Weather Forecast",
+    "rainProbability": "Rain Probability",
+    "temperature": "Temperature",
+    "humidity": "Humidity"
+  },
+  "maps": {
+    "location": "Location",
+    "navigate": "Navigate",
+    "pickupLocation": "Pickup Location",
+    "deliveryLocation": "Delivery Location"
+  }
+}

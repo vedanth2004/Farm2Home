@@ -1,0 +1,6 @@
+# This file ensures the ml_models directory is tracked by git
+# Place your trained model files here:
+# - customer_purchase_model.pkl
+# - category_label_encoder.pkl
+# - feature_label_encoders.pkl
+
