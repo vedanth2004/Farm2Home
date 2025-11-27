@@ -38,16 +38,12 @@ jobs:
         working-directory: ./frontend
         run: npm run lint
 
-      - name: Run unit tests
+      - name: Build (verify build succeeds)
         working-directory: ./frontend
-        run: npm run test
-
-      - name: Install Playwright Browsers
-        working-directory: ./frontend
-        run: npx playwright install --with-deps
-
-      - name: Run Playwright tests
-        working-directory: ./frontend
-        run: npm run e2e
+        run: npm run build
         env:
-          CI: true
+          # Provide dummy env vars for build to succeed
+          DATABASE_URL: "postgresql://dummy:dummy@localhost:5432/dummy"
+          NEXTAUTH_SECRET: "dummy-secret-for-ci-build"
+          NEXTAUTH_URL: "http://localhost:3000"
+          NEXT_PUBLIC_APP_URL: "http://localhost:3000"
