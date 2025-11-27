@@ -58,7 +58,20 @@ from datetime import datetime
 
 BASE_DIR = os.path.dirname(__file__)
 STORAGE_DIR = os.getenv("ML_STORAGE_DIR", BASE_DIR)
-os.makedirs(STORAGE_DIR, exist_ok=True)
+
+# Try to create storage directory, fallback to BASE_DIR if permission denied
+try:
+    os.makedirs(STORAGE_DIR, exist_ok=True)
+    # Test write permissions
+    test_file = os.path.join(STORAGE_DIR, ".test_write")
+    with open(test_file, "w") as f:
+        f.write("test")
+    os.remove(test_file)
+except (PermissionError, OSError) as e:
+    print(f"⚠️  Warning: Cannot write to {STORAGE_DIR}: {e}")
+    print(f"   Falling back to BASE_DIR: {BASE_DIR}")
+    STORAGE_DIR = BASE_DIR
+    os.makedirs(STORAGE_DIR, exist_ok=True)
 
 RAW_ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "*").strip()
 ALLOW_ALL_ORIGINS = RAW_ALLOWED_ORIGINS == "*"
