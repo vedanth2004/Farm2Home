@@ -1,5 +1,7 @@
 ## Deployment Overview
 
+> Looking for a click-by-click checklist? See `docs/deployment/README.md` for the full navigation guide.
+
 The project now supports the following hosting layout:
 
 - **Frontend**: Next.js app deployed on Vercel.
