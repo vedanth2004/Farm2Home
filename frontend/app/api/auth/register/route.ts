@@ -280,9 +280,11 @@ export async function POST(request: NextRequest) {
           metadata: {
             email: newUser.email,
             accountStatus: accountStatus,
-          autoApproved: roleValue === "ADMIN" || roleValue === "CUSTOMER",
-          requiresApproval:
-            roleValue === "FARMER" || roleValue === "PICKUP_AGENT" || roleValue === "CR",
+            autoApproved: roleValue === "ADMIN" || roleValue === "CUSTOMER",
+            requiresApproval:
+              roleValue === "FARMER" ||
+              roleValue === "PICKUP_AGENT" ||
+              roleValue === "CR",
           },
         });
       } catch (auditError: any) {

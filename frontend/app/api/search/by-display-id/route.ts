@@ -3,10 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { createSuccessResponse, createErrorResponse } from "@/lib/api/utils";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import {
-  isValidDisplayId,
-  getRoleFromDisplayId,
-} from "@/lib/utils/display-id";
+import { isValidDisplayId, getRoleFromDisplayId } from "@/lib/utils/display-id";
 
 export const dynamic = "force-dynamic";
 
