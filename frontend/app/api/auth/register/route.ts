@@ -13,13 +13,17 @@ import {
 } from "@/lib/geocoding-distance";
 
 export async function POST(request: NextRequest) {
+  // Declare variables outside try block for error logging
+  let email: string | undefined;
+  let role: string | undefined;
+
   try {
     const {
       name,
-      email,
+      email: emailValue,
       phone,
       password,
-      role = "CUSTOMER",
+      role: roleValue = "CUSTOMER",
       // Location fields
       address,
       city,
@@ -36,8 +40,12 @@ export async function POST(request: NextRequest) {
       experience,
     } = await request.json();
 
+    // Assign to outer scope variables for error logging
+    email = emailValue;
+    role = roleValue;
+
     // Validate required fields
-    if (!name || !email || !phone || !password) {
+    if (!name || !emailValue || !phone || !password) {
       return NextResponse.json(
         { error: "All fields are required" },
         { status: 400 },
@@ -54,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(emailValue)) {
       return NextResponse.json(
         { error: "Invalid email format" },
         { status: 400 },
@@ -71,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
-      where: { email },
+      where: { email: emailValue },
     });
 
     if (existingUser) {
@@ -88,13 +96,13 @@ export async function POST(request: NextRequest) {
     const user = await prisma.$transaction(async (tx) => {
       // Determine account status: ADMIN and CUSTOMER are auto-approved, others need verification
       const accountStatus =
-        role === "ADMIN" || role === "CUSTOMER"
+        roleValue === "ADMIN" || roleValue === "CUSTOMER"
           ? AccountStatus.APPROVED
           : AccountStatus.PENDING_VERIFICATION;
 
       // Generate IDs
       const internalId = uuidv4();
-      const displayId = generateDisplayId(role as any);
+      const displayId = generateDisplayId(roleValue as any);
 
       // Create user with IDs
       const newUser = await tx.user.create({
@@ -102,10 +110,10 @@ export async function POST(request: NextRequest) {
           internalId,
           displayId,
           name,
-          email,
+          email: emailValue,
           phone,
           password: hashedPassword,
-          role: role as any,
+          role: roleValue as any,
           accountStatus,
           twoFactorEnabled: false,
           locale: "en",
@@ -141,7 +149,7 @@ export async function POST(request: NextRequest) {
       let farmerCRId: string | null = null;
       let farmerDistanceToCR: number | null = null;
 
-      if (role === "FARMER") {
+      if (roleValue === "FARMER") {
         // Find nearest CR if available (optional - no distance restriction)
         // Wrap in try-catch to prevent registration failure if geocoding/CR lookup fails
         try {
@@ -163,7 +171,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Create role-specific profiles
-      if (role === "FARMER") {
+      if (roleValue === "FARMER") {
         await tx.farmerProfile.create({
           data: {
             userId: newUser.id,
@@ -180,11 +188,11 @@ export async function POST(request: NextRequest) {
           data: {
             userId: newUser.id,
             displayId: displayId,
-            role: role as any,
+            role: roleValue as any,
             status: "PENDING",
           },
         });
-      } else if (role === "PICKUP_AGENT") {
+      } else if (roleValue === "PICKUP_AGENT") {
         await tx.pickupAgentProfile.create({
           data: {
             userId: newUser.id,
@@ -200,11 +208,11 @@ export async function POST(request: NextRequest) {
           data: {
             userId: newUser.id,
             displayId: displayId,
-            role: role as any,
+            role: roleValue as any,
             status: "PENDING",
           },
         });
-      } else if (role === "CR") {
+      } else if (roleValue === "CR") {
         // CR registration - no distance restrictions (CRs can register anywhere)
         // Still call the function to get location data, but it won't block registration
         await checkCRRegistrationDistance(pincode);
@@ -230,14 +238,14 @@ export async function POST(request: NextRequest) {
           data: {
             userId: newUser.id,
             displayId: displayId,
-            role: role as any,
+            role: roleValue as any,
             status: "PENDING",
           },
         });
       }
 
       // For farmers, log CR assignment if available (optional - no distance restriction)
-      if (role === "FARMER" && farmerCRId) {
+      if (roleValue === "FARMER" && farmerCRId) {
         // Get the CR profile to log assignment
         const assignedCR = await tx.cRProfile.findUnique({
           where: { id: farmerCRId },
@@ -272,9 +280,9 @@ export async function POST(request: NextRequest) {
           metadata: {
             email: newUser.email,
             accountStatus: accountStatus,
-            autoApproved: role === "ADMIN" || role === "CUSTOMER",
-            requiresApproval:
-              role === "FARMER" || role === "PICKUP_AGENT" || role === "CR",
+          autoApproved: roleValue === "ADMIN" || roleValue === "CUSTOMER",
+          requiresApproval:
+            roleValue === "FARMER" || roleValue === "PICKUP_AGENT" || roleValue === "CR",
           },
         });
       } catch (auditError: any) {
@@ -294,7 +302,7 @@ export async function POST(request: NextRequest) {
       {
         message: "User created successfully",
         user: userWithoutPassword,
-        role: role,
+        role: roleValue,
         location: { city, state, pincode },
       },
       { status: 201 },
