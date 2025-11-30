@@ -143,14 +143,23 @@ export async function POST(request: NextRequest) {
 
       if (role === "FARMER") {
         // Find nearest CR if available (optional - no distance restriction)
-        const nearestCR = await findNearestCRForFarmer(pincode);
+        // Wrap in try-catch to prevent registration failure if geocoding/CR lookup fails
+        try {
+          const nearestCR = await findNearestCRForFarmer(pincode);
 
-        // Assign CR if found, but don't block registration if none available
-        if (nearestCR.crFound) {
-          farmerCRId = nearestCR.crId || null;
-          farmerDistanceToCR = nearestCR.distanceKm || null;
+          // Assign CR if found, but don't block registration if none available
+          if (nearestCR.crFound) {
+            farmerCRId = nearestCR.crId || null;
+            farmerDistanceToCR = nearestCR.distanceKm || null;
+          }
+        } catch (crError: any) {
+          // Log error but continue registration without CR assignment
+          console.warn(
+            `Failed to find CR for farmer registration: ${crError?.message || crError}`,
+          );
+          // Continue without CR assignment - registration should still succeed
         }
-        // If no CR found, farmer can still register without CR assignment
+        // If no CR found or lookup fails, farmer can still register without CR assignment
       }
 
       // Create role-specific profiles
@@ -251,22 +260,29 @@ export async function POST(request: NextRequest) {
         console.log("Farmer CR assignment (optional):", assignmentData);
       }
 
-      // Log successful registration
-      await createAuditLog({
-        userId: internalId,
-        displayId: displayId,
-        role: role as any,
-        action: "User Registration",
-        entityType: "User",
-        entityId: newUser.id,
-        metadata: {
-          email: newUser.email,
-          accountStatus: accountStatus,
-          autoApproved: role === "ADMIN" || role === "CUSTOMER",
-          requiresApproval:
-            role === "FARMER" || role === "PICKUP_AGENT" || role === "CR",
-        },
-      });
+      // Log successful registration (non-blocking - don't fail registration if logging fails)
+      try {
+        await createAuditLog({
+          userId: internalId,
+          displayId: displayId,
+          role: role as any,
+          action: "User Registration",
+          entityType: "User",
+          entityId: newUser.id,
+          metadata: {
+            email: newUser.email,
+            accountStatus: accountStatus,
+            autoApproved: role === "ADMIN" || role === "CUSTOMER",
+            requiresApproval:
+              role === "FARMER" || role === "PICKUP_AGENT" || role === "CR",
+          },
+        });
+      } catch (auditError: any) {
+        // Log error but don't fail registration
+        console.warn(
+          `Failed to create audit log for registration: ${auditError?.message || auditError}`,
+        );
+      }
 
       return newUser;
     });
@@ -284,18 +300,37 @@ export async function POST(request: NextRequest) {
       { status: 201 },
     );
   } catch (error: any) {
+    // Enhanced error logging for debugging
     console.error("Registration error:", error);
     console.error("Error details:", {
       message: error?.message,
       code: error?.code,
       meta: error?.meta,
       stack: error?.stack,
+      name: error?.name,
+      // Log request data (without sensitive info)
+      role,
+      email: email ? `${email.substring(0, 3)}***` : "missing",
     });
+
+    // In production, still provide some error info without exposing sensitive data
+    const errorMessage =
+      process.env.NODE_ENV === "development"
+        ? error?.message
+        : error?.code === "P2002"
+          ? "A user with this email already exists"
+          : error?.code === "P2003"
+            ? "Database constraint violation"
+            : "Registration failed. Please try again.";
+
     return NextResponse.json(
       {
         error: "Internal server error",
-        details:
-          process.env.NODE_ENV === "development" ? error?.message : undefined,
+        details: errorMessage,
+        ...(process.env.NODE_ENV === "development" && {
+          code: error?.code,
+          meta: error?.meta,
+        }),
       },
       { status: 500 },
     );
