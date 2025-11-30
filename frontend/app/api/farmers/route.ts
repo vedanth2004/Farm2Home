@@ -9,7 +9,7 @@ import { prisma } from "@/lib/prisma";
 import { createSuccessResponse, createErrorResponse } from "@/lib/api/utils";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { filterFarmersByDistance } from "@/lib/geocoding-distance";
+// Distance filtering removed - customers can see all farmers
 import { parsePagination, createPaginatedResponse } from "@/lib/pagination";
 
 export const dynamic = "force-dynamic";
@@ -18,26 +18,6 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     const userId = session?.user?.id;
-
-    // For customers, filter farmers by distance (50km)
-    let visibleFarmerIds: string[] | undefined;
-    if (userId && session?.user?.role !== "ADMIN") {
-      const customer = await prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-          addresses: {
-            take: 1,
-            orderBy: { createdAt: "desc" },
-          },
-        },
-      });
-
-      if (customer?.addresses?.[0]?.postalCode) {
-        visibleFarmerIds = await filterFarmersByDistance(
-          customer.addresses[0].postalCode,
-        );
-      }
-    }
 
     // Pagination
     const pagination = parsePagination(request, 50);
@@ -51,20 +31,7 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // Filter by visible farmers for customers
-    if (visibleFarmerIds !== undefined) {
-      if (visibleFarmerIds.length === 0) {
-        const emptyResponse = createPaginatedResponse([], 0, pagination);
-        return createSuccessResponse(
-          emptyResponse,
-          "No farmers available in your area",
-        );
-      }
-      // visibleFarmerIds contains farmer profile IDs, so filter by that
-      where.farmerProfile = {
-        id: { in: visibleFarmerIds },
-      };
-    }
+    // Distance filtering removed - all customers can see all farmers
 
     // Get search query
     const searchParams = request.nextUrl.searchParams;

@@ -136,24 +136,21 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      // For farmers, find nearest CR within 50km using Haversine formula
+      // For farmers, optionally find nearest CR (no distance requirement)
       // Store CR assignment and distance in FarmerProfile
       let farmerCRId: string | null = null;
       let farmerDistanceToCR: number | null = null;
 
       if (role === "FARMER") {
-        // Find nearest CR within 50km
+        // Find nearest CR if available (optional - no distance restriction)
         const nearestCR = await findNearestCRForFarmer(pincode);
 
-        if (!nearestCR.crFound) {
-          // If no CR within 50km, farmer cannot register (until CR is available in that region)
-          throw new Error(
-            `Farmer registration failed: ${nearestCR.reason || "No CR found within 50km radius"}`,
-          );
+        // Assign CR if found, but don't block registration if none available
+        if (nearestCR.crFound) {
+          farmerCRId = nearestCR.crId || null;
+          farmerDistanceToCR = nearestCR.distanceKm || null;
         }
-
-        farmerCRId = nearestCR.crId || null;
-        farmerDistanceToCR = nearestCR.distanceKm || null;
+        // If no CR found, farmer can still register without CR assignment
       }
 
       // Create role-specific profiles
@@ -199,19 +196,9 @@ export async function POST(request: NextRequest) {
           },
         });
       } else if (role === "CR") {
-        // Check CR registration distance using Haversine formula
-        // Before approval, system checks distance between new CR and all existing CRs
-        const crDistanceCheck = await checkCRRegistrationDistance(pincode);
-
-        if (!crDistanceCheck.canRegister) {
-          throw new Error(
-            `CR registration rejected: ${crDistanceCheck.reason}${
-              crDistanceCheck.distanceKm
-                ? ` (${crDistanceCheck.distanceKm.toFixed(2)} km from existing CR)`
-                : ""
-            }`,
-          );
-        }
+        // CR registration - no distance restrictions (CRs can register anywhere)
+        // Still call the function to get location data, but it won't block registration
+        await checkCRRegistrationDistance(pincode);
 
         // Update serviceAreas with dynamic pincode-to-radius logic
         // Include city, state, pincode, and district if available
@@ -240,40 +227,28 @@ export async function POST(request: NextRequest) {
         });
       }
 
-      // For farmers, find nearest CR within 50km using Haversine formula
-      if (role === "FARMER") {
-        // System searches for the nearest CR within 50km radius using Haversine
-        const nearestCR = await findNearestCRForFarmer(pincode);
-
-        if (!nearestCR.crFound) {
-          // If no CR within 50km, farmer cannot register (until CR is available in that region)
-          throw new Error(
-            `Farmer registration failed: ${nearestCR.reason || "No CR available within 50km radius"}`,
-          );
-        }
-
+      // For farmers, log CR assignment if available (optional - no distance restriction)
+      if (role === "FARMER" && farmerCRId) {
         // Get the CR profile to log assignment
         const assignedCR = await tx.cRProfile.findUnique({
-          where: { id: nearestCR.crId! },
+          where: { id: farmerCRId },
           include: {
             user: true,
           },
         });
 
-        // Create assignment record
+        // Create assignment record (optional assignment)
         const assignmentData = {
           farmerId: newUser.id,
           farmerLocation: { city, state, pincode },
           assignedCR: assignedCR?.user.name || "Unknown CR",
-          assignedCRId: nearestCR.crId,
-          assignedCRDistanceKm: nearestCR.distanceKm,
+          assignedCRId: farmerCRId,
+          assignedCRDistanceKm: farmerDistanceToCR,
           assignmentDate: new Date(),
         };
 
         // Store assignment information
-        console.log("Farmer Haversine-based assignment:", assignmentData);
-
-        // Note: The farmer is now linked to only one CR in their region (within 50km)
+        console.log("Farmer CR assignment (optional):", assignmentData);
       }
 
       // Log successful registration

@@ -52,64 +52,40 @@ export async function GET(
     let allProductsWithSameName: any[] = [product];
 
     if (session?.user?.role !== "ADMIN") {
-      // Get customer's location to filter farmers
-      if (userId) {
-        const customer = await prisma.user.findUnique({
-          where: { id: userId },
-          include: {
-            addresses: {
-              take: 1,
-              orderBy: { createdAt: "desc" },
+      // Distance filtering removed - show all products with same name from all farmers
+      // Get all products with same name from all farmers
+      const sameNameProducts = await prisma.product.findMany({
+        where: {
+          name: {
+            equals: product.name,
+            mode: "insensitive",
+          },
+          id: { not: productId }, // Exclude current product
+        },
+        include: {
+          farmer: {
+            include: {
+              user: {
+                include: {
+                  addresses: {
+                    take: 1,
+                  },
+                },
+              },
             },
           },
-        });
+          listings: {
+            where: {
+              isActive: true,
+            },
+            orderBy: {
+              createdAt: "desc",
+            },
+          },
+        },
+      });
 
-        if (customer?.addresses?.[0]?.postalCode) {
-          const { filterFarmersByDistance } = await import(
-            "@/lib/geocoding-distance"
-          );
-          const visibleFarmerIds = await filterFarmersByDistance(
-            customer.addresses[0].postalCode,
-          );
-
-          if (visibleFarmerIds.length > 0) {
-            // Get all products with same name from visible farmers
-            const sameNameProducts = await prisma.product.findMany({
-              where: {
-                name: {
-                  equals: product.name,
-                  mode: "insensitive",
-                },
-                farmerId: { in: visibleFarmerIds },
-                id: { not: productId }, // Exclude current product
-              },
-              include: {
-                farmer: {
-                  include: {
-                    user: {
-                      include: {
-                        addresses: {
-                          take: 1,
-                        },
-                      },
-                    },
-                  },
-                },
-                listings: {
-                  where: {
-                    isActive: true,
-                  },
-                  orderBy: {
-                    createdAt: "desc",
-                  },
-                },
-              },
-            });
-
-            allProductsWithSameName = [product, ...sameNameProducts];
-          }
-        }
-      }
+      allProductsWithSameName = [product, ...sameNameProducts];
     } else {
       // Admin can see all products with same name
       const sameNameProducts = await prisma.product.findMany({

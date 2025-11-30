@@ -5,7 +5,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { parsePagination, createPaginatedResponse } from "@/lib/pagination";
 import { cache, cacheKeys } from "@/lib/cache";
-import { filterFarmersByDistance } from "@/lib/geocoding-distance";
+// Distance filtering removed - customers can see all farmers
 
 export const dynamic = "force-dynamic";
 
@@ -51,29 +51,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // For customers, filter products by distance (50km from customer to farmer)
-    let visibleFarmerIds: string[] | undefined;
-    if (userId && session?.user?.role !== "ADMIN") {
-      // Get customer's address to find their pincode
-      const customer = await prisma.user.findUnique({
-        where: { id: userId },
-        include: {
-          addresses: {
-            take: 1,
-            orderBy: { createdAt: "desc" },
-          },
-        },
-      });
-
-      if (customer?.addresses?.[0]?.postalCode) {
-        // Filter farmers within 50km of customer using Haversine formula
-        // Customer can only see products from farmers within 50km
-        visibleFarmerIds = await filterFarmersByDistance(
-          customer.addresses[0].postalCode,
-        );
-      }
-    }
-
     // Build where clause
     const where: any = {
       listings: {
@@ -83,52 +60,10 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // For customers, only show products from farmers within 50km
-    if (visibleFarmerIds !== undefined) {
-      if (visibleFarmerIds.length === 0) {
-        // No farmers within range, return empty results
-        const emptyResponse = createPaginatedResponse([], 0, pagination);
-        return createSuccessResponse(
-          {
-            ...emptyResponse,
-            filters: {
-              categories: [],
-              minPrice: 0,
-              maxPrice: 0,
-            },
-          },
-          "No products available in your area",
-        );
-      }
-
-      // If specific farmerId is requested, ensure it's in the visible list
-      if (farmerId) {
-        if (!visibleFarmerIds.includes(farmerId)) {
-          // Requested farmer is not within 50km, return empty
-          const emptyResponse = createPaginatedResponse([], 0, pagination);
-          return createSuccessResponse(
-            {
-              ...emptyResponse,
-              filters: {
-                categories: [],
-                minPrice: 0,
-                maxPrice: 0,
-              },
-            },
-            "This farmer is not available in your area",
-          );
-        }
-        // Farmer is visible, filter by specific farmer
-        where.farmerId = farmerId;
-      } else {
-        // No specific farmer requested, show all visible farmers
-        where.farmerId = { in: visibleFarmerIds };
-      }
-    } else {
-      // Admin or no distance filtering - apply farmerId filter if provided
-      if (farmerId) {
-        where.farmerId = farmerId;
-      }
+    // Distance filtering removed - all customers can see all farmers
+    // Apply farmerId filter if provided
+    if (farmerId) {
+      where.farmerId = farmerId;
     }
 
     if (category && category !== "all") {

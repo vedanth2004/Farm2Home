@@ -6,10 +6,11 @@ import opencage from "opencage-api-client";
 // ============================================================================
 
 const EARTH_RADIUS_KM = 6371;
-const CR_OPERATIONAL_RADIUS_KM = 50; // CRs control 50km radius zone
-const FARMER_TO_CR_MAX_DISTANCE_KM = 50; // Farmers must be within 50km of CR
-const CUSTOMER_TO_FARMER_MAX_DISTANCE_KM = 50; // Customers see farmers within 50km
-const AGENT_DELIVERY_RADIUS_KM = 30; // Agents deliver within 30km
+// Radius constraints removed - no geographic restrictions
+// const CR_OPERATIONAL_RADIUS_KM = 50; // REMOVED: CRs can register anywhere
+// const FARMER_TO_CR_MAX_DISTANCE_KM = 50; // REMOVED: Farmers can register without CR requirement
+// const CUSTOMER_TO_FARMER_MAX_DISTANCE_KM = 50; // REMOVED: Customers can see all farmers
+const AGENT_DELIVERY_RADIUS_KM = 30; // Agents deliver within 30km (kept for delivery efficiency)
 
 // ============================================================================
 // TYPES
@@ -319,7 +320,7 @@ export async function getCoordinatesForPincode(
 
 /**
  * Check if new CR location conflicts with existing CRs (within 50km)
- * Used during CR registration approval
+ * REMOVED: No longer enforces distance restrictions - CRs can register anywhere
  */
 export async function checkCRRegistrationDistance(newPincode: string): Promise<{
   canRegister: boolean;
@@ -336,57 +337,7 @@ export async function checkCRRegistrationDistance(newPincode: string): Promise<{
     };
   }
 
-  // Get all existing approved CRs with their coordinates
-  const existingCRs = await prisma.cRProfile.findMany({
-    where: {
-      user: {
-        accountStatus: "APPROVED",
-      },
-    },
-    include: {
-      user: {
-        include: {
-          addresses: {
-            where: {
-              lat: { not: null },
-              lon: { not: null },
-            },
-            take: 1,
-          },
-        },
-      },
-    },
-  });
-
-  // Check distance to each existing CR
-  for (const cr of existingCRs) {
-    const crAddress = cr.user.addresses[0];
-    if (!crAddress?.lat || !crAddress?.lon) {
-      continue; // Skip CRs without coordinates
-    }
-
-    const distance = calculateHaversineDistance(
-      location.latitude,
-      location.longitude,
-      crAddress.lat,
-      crAddress.lon,
-    );
-
-    if (distance <= CR_OPERATIONAL_RADIUS_KM) {
-      return {
-        canRegister: false,
-        reason: `Too close to existing CR (${distance.toFixed(2)} km away)`,
-        conflictingCR: {
-          id: cr.id,
-          displayId: cr.user.displayId,
-          name: cr.user.name,
-        },
-        distanceKm: distance,
-        location,
-      };
-    }
-  }
-
+  // No distance restrictions - CRs can register anywhere
   return {
     canRegister: true,
     location,
@@ -398,7 +349,9 @@ export async function checkCRRegistrationDistance(newPincode: string): Promise<{
 // ============================================================================
 
 /**
- * Find nearest CR within 50km for farmer registration
+ * Find nearest CR for farmer registration
+ * REMOVED: No longer requires CR within 50km - farmers can register without CR requirement
+ * Returns nearest CR if available, but registration is not blocked if none found
  */
 export async function findNearestCRForFarmer(farmerPincode: string): Promise<{
   crFound: boolean;
@@ -442,7 +395,7 @@ export async function findNearestCRForFarmer(farmerPincode: string): Promise<{
     distanceKm: number;
   } | null = null;
 
-  // Find nearest CR within 50km
+  // Find nearest CR (no distance restriction)
   for (const cr of existingCRs) {
     const crAddress = cr.user.addresses[0];
     if (!crAddress?.lat || !crAddress?.lon) {
@@ -456,10 +409,8 @@ export async function findNearestCRForFarmer(farmerPincode: string): Promise<{
       crAddress.lon,
     );
 
-    if (
-      distance <= FARMER_TO_CR_MAX_DISTANCE_KM &&
-      (!nearestCR || distance < nearestCR.distanceKm)
-    ) {
+    // Always find nearest, regardless of distance
+    if (!nearestCR || distance < nearestCR.distanceKm) {
       nearestCR = {
         crId: cr.id,
         distanceKm: distance,
@@ -470,7 +421,7 @@ export async function findNearestCRForFarmer(farmerPincode: string): Promise<{
   if (!nearestCR) {
     return {
       crFound: false,
-      reason: `No CR found within ${FARMER_TO_CR_MAX_DISTANCE_KM}km radius`,
+      reason: "No approved CR available",
       location,
     };
   }
@@ -489,67 +440,26 @@ export async function findNearestCRForFarmer(farmerPincode: string): Promise<{
 
 /**
  * Filter farmers visible to customer (within 50km)
+ * REMOVED: No longer filters by distance - customers can see all farmers
  */
 export async function filterFarmersByDistance(
   customerPincode: string,
   farmerIds?: string[],
 ): Promise<string[]> {
-  const customerLocation = await geocodePincode(customerPincode);
-  if (!customerLocation) {
-    console.warn(`Could not geocode customer pincode: ${customerPincode}`);
-    return []; // No location = no visibility
-  }
-
-  // Get farmers with their addresses
+  // No distance filtering - return all approved farmers
   const farmers = await prisma.farmerProfile.findMany({
     where: {
       ...(farmerIds && farmerIds.length > 0 ? { id: { in: farmerIds } } : {}),
       user: {
         accountStatus: "APPROVED",
-        addresses: {
-          some: {
-            lat: { not: null },
-            lon: { not: null },
-          },
-        },
       },
     },
-    include: {
-      user: {
-        include: {
-          addresses: {
-            where: {
-              lat: { not: null },
-              lon: { not: null },
-            },
-            take: 1,
-          },
-        },
-      },
+    select: {
+      id: true,
     },
   });
 
-  const visibleFarmerIds: string[] = [];
-
-  for (const farmer of farmers) {
-    const farmerAddress = farmer.user.addresses[0];
-    if (!farmerAddress?.lat || !farmerAddress?.lon) {
-      continue;
-    }
-
-    const distance = calculateHaversineDistance(
-      customerLocation.latitude,
-      customerLocation.longitude,
-      farmerAddress.lat,
-      farmerAddress.lon,
-    );
-
-    if (distance <= CUSTOMER_TO_FARMER_MAX_DISTANCE_KM) {
-      visibleFarmerIds.push(farmer.id);
-    }
-  }
-
-  return visibleFarmerIds;
+  return farmers.map((farmer) => farmer.id);
 }
 
 // ============================================================================
