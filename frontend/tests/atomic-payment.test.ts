@@ -116,9 +116,17 @@ describe("Atomic Payment Processing", () => {
     await prisma.earnings.deleteMany({
       where: { orderId: testOrderId },
     });
-    await prisma.inventoryTransaction.deleteMany({
+    // Delete inventory transactions through order items -> listings
+    const orderItems = await prisma.orderItem.findMany({
       where: { orderId: testOrderId },
+      select: { listingId: true },
     });
+    const listingIds = orderItems.map((item) => item.listingId);
+    if (listingIds.length > 0) {
+      await prisma.inventoryTransaction.deleteMany({
+        where: { listingId: { in: listingIds } },
+      });
+    }
     await prisma.pickupJob.deleteMany({
       where: { orderId: testOrderId },
     });
@@ -160,7 +168,11 @@ describe("Atomic Payment Processing", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.earningsCreated).toBe(1);
+    if ("earningsCreated" in result) {
+      expect(result.earningsCreated).toBe(1);
+    } else {
+      throw new Error("Expected earningsCreated in result");
+    }
 
     // Verify payment was updated
     const payment = await prisma.payment.findFirst({
@@ -190,9 +202,9 @@ describe("Atomic Payment Processing", () => {
     });
     expect(listing?.availableQty).toBe(98); // 100 - 2
 
-    // Verify inventory transaction was created
+    // Verify inventory transaction was created (through listing)
     const inventoryTransaction = await prisma.inventoryTransaction.findFirst({
-      where: { orderId: testOrderId },
+      where: { listingId: testListingId },
     });
     expect(inventoryTransaction?.delta).toBe(-2);
     expect(inventoryTransaction?.reason).toBe("ORDER_RESERVE");
@@ -259,7 +271,11 @@ describe("Atomic Payment Processing", () => {
     });
 
     expect(result.success).toBe(true);
-    expect(result.message).toBe("Order already processed");
+    if ("message" in result) {
+      expect(result.message).toBe("Order already processed");
+    } else {
+      throw new Error("Expected message in result for double processing");
+    }
 
     // Verify only one set of earnings exists
     const earnings = await prisma.earnings.findMany({

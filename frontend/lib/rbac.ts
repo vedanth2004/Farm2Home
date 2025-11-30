@@ -1,4 +1,7 @@
 import { UserRole } from "@prisma/client";
+
+// Re-export UserRole for use in tests
+export { UserRole };
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
