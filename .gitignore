@@ -30,6 +30,7 @@ frontend/.vercel/
 frontend/node_modules/
 frontend/.turbo/
 frontend/.eslintcache
+frontend/tsconfig.tsbuildinfo
 
 # Backend Python env & caches
 backend/**/__pycache__/
